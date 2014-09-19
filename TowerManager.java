@@ -24,6 +24,9 @@ public class TowerManager {
 	public HashSet<TileEntityTower> towers = new HashSet<TileEntityTower>();
 	HashSet<TDPlayer> players = new HashSet<TDPlayer>();
 	
+	Random randD = new Random();
+	Random randI = new Random(100);
+	
 	/**
 	 * adds the player to the TDPlayer set, and runs a location check to determine if the player is in the darkness.
 	 * @param player
@@ -271,7 +274,33 @@ public class TowerManager {
 			}
 		}
 	}
-	
+	/**
+	 * @param world
+	 * @param towerLoc
+	 * @param densityPercent
+	 * @param trackingHeight
+	 * @param wallHeight
+	 * @param playerLoc
+	 * @param range
+	 */
+	public void createSparklingTowerRadiusBorderTracking(World world, TDLocation towerLoc, int densityPercent, int trackingHeight, int wallHeight, TDLocation playerLoc, int range){
+		
+		
+		for(TDLocation loc : getTowerRadiusBorder(towerLoc)){
+			if(getDistance(playerLoc.x, playerLoc.z, loc.x, loc.z)<=range){
+				for(int h=-wallHeight; h<wallHeight; h++){
+					if(randI.nextInt()<densityPercent){
+						try{
+							world.spawnParticle("fireworksSpark", loc.x+randD.nextDouble(), trackingHeight+h+randD.nextDouble(), loc.z+randD.nextDouble(), 0.0D, 0.0D, 0.0D);
+						}catch(Exception e){
+							System.out.println("There was a problem rendering the darkness");
+						}
+					}
+				}
+			}
+			
+		}
+	}
 	public TDLocation getBorderBlockNearestLocation(TDLocation trackingLoc, TDLocation towerLoc){
 		double distance = 123456789;
 		TDLocation result = null;

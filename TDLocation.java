@@ -27,6 +27,7 @@ public class TDLocation {
 	}
 	
 	public boolean isSameLocation(TDLocation loc){
+		if(loc==null){return false;}
 		if(loc.x==x && loc.y==y && loc.z==z){
 			return true;
 		}else{
@@ -36,7 +37,8 @@ public class TDLocation {
 	
 	@Override
     public boolean equals(Object o) {
-        if (o == this) return true;   //If objects equal, is OK
+        if (o==null)return false;
+		if (o == this) return true;   //If objects equal, is OK
         if (o instanceof TDLocation) {
            TDLocation tdl = (TDLocation)o;
            return (x == tdl.x)  && (y == tdl.y) && (z==tdl.z);

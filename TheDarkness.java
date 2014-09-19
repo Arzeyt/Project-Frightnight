@@ -31,10 +31,12 @@ public class TheDarkness {
 	public static Block towerBlockEmpty;
 	public static Block towerBlock;
 	public static Block towerBlockDark;
+	public static Block lightingBlock;
+	public static Block lightOrbBlock;
 	
 	public static Item lightOrbItem;
 	
-	public static Block lightOrbBlock;
+
 	
 	public static TDWorldGenerator worldGen = new TDWorldGenerator();
 	
@@ -61,6 +63,9 @@ public class TheDarkness {
 		
 		lightOrbBlock = new BlockLightOrb();
 		GameRegistry.registerBlock(lightOrbBlock, "lightOrbBlock");
+		
+		lightingBlock = new BlockLighting();
+		GameRegistry.registerBlock(lightingBlock, "lightBlock");
 		
 		//tile entities
 		GameRegistry.registerTileEntity(TileEntityTower.class, "towerTileEntity");

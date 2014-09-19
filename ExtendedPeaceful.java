@@ -1,5 +1,9 @@
 package com.arzeyt.theDarkness;
 
+import java.io.IOException;
+
+import com.arzeyt.theDarkness.proxies.PacketTheDarkness;
+
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.player.EntityPlayer;
@@ -13,7 +17,7 @@ public class ExtendedPeaceful implements IExtendedEntityProperties{
 	
 	private final EntityLiving entity;
 	
-	private boolean hasDarkness;
+	public boolean hasDarkness;
 	
 	public ExtendedPeaceful(EntityLiving entity)
 	{
@@ -64,22 +68,16 @@ public class ExtendedPeaceful implements IExtendedEntityProperties{
 	public void init(Entity entity, World world)
 	{
 	}
-	
-	/*
-	That's it for the IExtendedEntityProperties methods, but we need to add a few of our own in order to interact with our new variables. For now, let's make one method to consume mana and one to replenish it.
-	*/
-	
-	public void setEntityInDarkness()
-	{
-		this.hasDarkness=true;
+
+	public void sync() {
+		/**
+		try {
+			TheDarkness.channel.sendToAll(PacketTheDarkness.extendedPeacefulPacket(this, entity));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		*/
 	}
-	
-	/**
-	* Simple method sets current mana to max mana
-	*/
-	public void setEntityNotInDarkness()
-	{
-		this.hasDarkness=false;
-	}
+
 
 }

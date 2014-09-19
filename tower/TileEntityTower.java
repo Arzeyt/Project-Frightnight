@@ -133,7 +133,7 @@ public class TileEntityTower extends TileEntity {
     		this.toEmptyBlock(worldObj);
     		this.orbs=0;
     		return true;
-    	}else if(this.orbs==0){
+    	}else if(this.orbs<=0){
     		return false;
     	}else{
     		this.orbs=this.orbs-1;

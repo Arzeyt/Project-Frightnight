@@ -1,15 +1,23 @@
 package com.arzeyt.theDarkness;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 import com.arzeyt.theDarkness.proxies.PacketTheDarkness;
 import com.arzeyt.theDarkness.tower.TileEntityTower;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.entity.EntityLiving;
+import net.minecraft.entity.monster.EntityMob;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.AxisAlignedBB;
+import net.minecraftforge.common.IExtendedEntityProperties;
 import net.minecraftforge.common.MinecraftForge;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent;
@@ -25,6 +33,7 @@ public class PlayerTickHandler {
 	private int locationCheckTick = ConfigValues.locationTickRate;
 	private int counter = 0;
 	private boolean inDarkness=false;
+	private TDLocation lightingLoc = null;
 
 
 	@SubscribeEvent
@@ -59,6 +68,20 @@ public class PlayerTickHandler {
 			}
 		}
 		
+		//render the light of the light orb
+		if(counter%ConfigValues.lightOrbLightRenderRate==0){
+			if(e.player.getHeldItem()!=null && e.player.getHeldItem().getItem().equals(Item.getItemFromBlock(TheDarkness.lightOrbBlock))){
+				if(lightingLoc==null){
+					lightingLoc = new TDLocation(0, 0, 0);
+				}else if(playerLoc.equals(lightingLoc)==false && e.player.worldObj.getBlock(playerLoc.x, playerLoc.y, playerLoc.z).equals(Blocks.air)){
+					System.out.println("holding light orb and not at same location");
+					e.player.worldObj.setBlockToAir(lightingLoc.x, lightingLoc.y, lightingLoc.z);
+					e.player.worldObj.setBlock(playerLoc.x, playerLoc.y, playerLoc.z, TheDarkness.lightingBlock);
+					lightingLoc=playerLoc;
+				}
+			}
+		}
+		
 		//send darkness visualization packets to players
 		if(counter%(ConfigValues.darknessWallLocationCheckTime)==0){
 			TDPlayer tdp = TheDarkness.towerManager.getTDPlayer(e.player);
@@ -79,13 +102,31 @@ public class PlayerTickHandler {
 				
 			}else if(inDarkness==true && tdp.justLoggedIn){
 				TheDarkness.channel.sendTo(PacketTheDarkness.createWallVisOffPacket(e.player), (EntityPlayerMP) e.player);
+				tdp.justLoggedIn=false;
 			}
 		}
+		
+		if(counter%ConfigValues.locationTickRate==0){
+			int range = 5;
+			EntityPlayer p = e.player;
+			List<EntityLiving> mobs =  p.worldObj.getEntitiesWithinAABB(EntityLiving.class, AxisAlignedBB.getBoundingBox(p.posX-range, p.posY-range, p.posZ-range, p.posX + range, p.posY + range, p.posZ + range));
+			for(EntityLiving mob : mobs){
+				if(ExtendedPeaceful.get(mob)!=null){
+					ExtendedPeaceful exprop = ExtendedPeaceful.get(mob);
+					if(exprop.hasDarkness){
+						p.worldObj.spawnParticle("largesmoke", mob.posX, mob.posY, mob.posZ, 0.0D, 0.0D, 0.0D);
+					}
+				}
+			}
+		}
+			
 		counter++;
 	}
 
 	private void executeClientPlayerTick(PlayerTickEvent e, TDLocation playerLoc) {
-		
+		//smokey peaceful
+	
+		counter++;
 	}
 	
 	

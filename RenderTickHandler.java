@@ -21,29 +21,35 @@ public class RenderTickHandler {
 		TDLocation playerLoc = new TDLocation((int)minecraft.thePlayer.posX, (int)minecraft.thePlayer.posY, (int)minecraft.thePlayer.posZ);
 		World world = minecraft.theWorld;
 		
+		//tower radius border render
 		if(TheDarkness.renderManager.shouldRenderTowerRadiusBorder()==true){
 			if(counter%ConfigValues.darknessWallRenderTickTime==0){
 				for(TDLocation loc : TheDarkness.renderManager.getTowerRadiusBorderRenderingLocations()){
 					renderTowerRadiusBorderAt(world, loc, playerLoc);
 				}
 			}
-		//remember to stick with TDRender manager for references
+			
+		//darkness smoke render
 		}else if(TheDarkness.renderManager.shouldRenderDarknessSmoke==true){
 			if(counter%(ConfigValues.darknessSmokeRenderTickTime)==0){
 				//TheDarkness.towerManager.createDarknessSmoke(Minecraft.getMinecraft().theWorld, playerLoc, 99, 6);
 			}
 		}
+		
+		//personal orb sphere render
 		if(TheDarkness.renderManager.shouldRenderOrbSphere){
 			if(counter%60==0){
 				TheDarkness.towerManager.createParticleSphere(world, minecraft.thePlayer.posX, minecraft.thePlayer.posY, minecraft.thePlayer.posZ, 10, "fireworksSpark");
 			}
 		}
 		counter++;
+		
+		
 	}
 	
 	public void renderTowerRadiusBorderAt(World world, TDLocation loc, TDLocation playerLoc){
 		
-		TheDarkness.towerManager.createSparklingTowerRadiusBorder(Minecraft.getMinecraft().theWorld, loc, 50, playerLoc.y, 6);
+		TheDarkness.towerManager.createSparklingTowerRadiusBorderTracking(Minecraft.getMinecraft().theWorld, loc, 10, playerLoc.y, 6, playerLoc, 10 );
 		TheDarkness.towerManager.createSmokeyTowerRadiusBorder(world, loc, 99);
 		
 		//TheDarkness.towerManager.createTrackingBorderSparkles(Minecraft.getMinecraft().theWorld, playerLoc, TheDarkness.renderManager.loc, 3, 5);
