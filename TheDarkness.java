@@ -1,7 +1,9 @@
 package com.arzeyt.theDarkness;
 
 import com.arzeyt.theDarkness.lightOrb.BlockLightOrb;
+import com.arzeyt.theDarkness.lightOrb.BlockLighting;
 import com.arzeyt.theDarkness.lightOrb.TileEntityLightOrb;
+import com.arzeyt.theDarkness.lightOrb.TileEntityLighting;
 import com.arzeyt.theDarkness.proxies.CommonProxy;
 import com.arzeyt.theDarkness.tower.BlockTower;
 import com.arzeyt.theDarkness.tower.BlockTowerDark;
@@ -70,6 +72,7 @@ public class TheDarkness {
 		//tile entities
 		GameRegistry.registerTileEntity(TileEntityTower.class, "towerTileEntity");
 		GameRegistry.registerTileEntity(TileEntityLightOrb.class, "lightOrbTileEntity");
+		GameRegistry.registerTileEntity(TileEntityLighting.class, "lightingTileEntity");
 		
 		//items
 		lightOrbItem = new ItemLightOrb();

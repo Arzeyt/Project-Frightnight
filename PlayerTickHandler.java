@@ -2,6 +2,7 @@ package com.arzeyt.theDarkness;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -27,13 +28,13 @@ import cpw.mods.fml.relauncher.SideOnly;
 
 public class PlayerTickHandler {
 
-	//if there's only one instance on the server, these variables (inDarkness) will prove to be troublesome. Probably needa create a set to hold 
+	//if there's only one instance on the server, these variables (inDarkness) will prove to be troublesome. Probably need to create a set to hold 
 	//their values
 	
 	private int locationCheckTick = ConfigValues.locationTickRate;
 	private int counter = 0;
 	private boolean inDarkness=false;
-	private TDLocation lightingLoc = null;
+	public HashMap<EntityPlayer, TDLocation> lightingBlocks = new HashMap<EntityPlayer, TDLocation>();
 
 
 	@SubscribeEvent
@@ -54,13 +55,14 @@ public class PlayerTickHandler {
 	private void executeServerPlayerTick(PlayerTickEvent e, TDLocation playerLoc) throws IOException {
 		TileEntityTower tower = TheDarkness.towerManager.getNearestTower((int)e.player.posX, (int)e.player.posZ);
 
+		TheDarkness.towerManager.getTDPlayer(e.player).counter++;
 		
 		//update player in towerManager and set inDarkness. Should do this FIRST!
 		if(counter%(locationCheckTick)==0){
 			if(TheDarkness.towerManager.towers.size()<1){
 				System.out.println("No Towers");
 			}else{
-				TheDarkness.towerManager.updatePlayerLocation(e.player);
+				TheDarkness.towerManager.updatePlayer(e.player);
 				inDarkness = TheDarkness.towerManager.getTDPlayer(e.player).inDarkness;
 				//System.out.println("inDarkness = "+ inDarkness+" players in map"+TheDarkness.towerManager.players.size());
 				
@@ -68,43 +70,76 @@ public class PlayerTickHandler {
 			}
 		}
 		
-		//render the light of the light orb
+		//lighting block placement and removal
 		if(counter%ConfigValues.lightOrbLightRenderRate==0){
-			if(e.player.getHeldItem()!=null && e.player.getHeldItem().getItem().equals(Item.getItemFromBlock(TheDarkness.lightOrbBlock))){
-				if(lightingLoc==null){
-					lightingLoc = new TDLocation(0, 0, 0);
-				}else if(playerLoc.equals(lightingLoc)==false && e.player.worldObj.getBlock(playerLoc.x, playerLoc.y, playerLoc.z).equals(Blocks.air)){
-					System.out.println("holding light orb and not at same location");
-					e.player.worldObj.setBlockToAir(lightingLoc.x, lightingLoc.y, lightingLoc.z);
+			//if player is holding light orb
+			if(TheDarkness.towerManager.getTDPlayer(e.player).isHoldingLightOrb){
+				if(lightingBlocks.containsKey(e.player)==false){
+					lightingBlocks.put(e.player, new TDLocation(0, 0, 0));
+				}else if(playerLoc.equals(lightingBlocks.get(e.player))==false && e.player.worldObj.getBlock(playerLoc.x, playerLoc.y, playerLoc.z).equals(Blocks.air)){
+					TDLocation oldLoc = lightingBlocks.get(e.player);
+					e.player.worldObj.setBlockToAir(oldLoc.x, oldLoc.y, oldLoc.z);
 					e.player.worldObj.setBlock(playerLoc.x, playerLoc.y, playerLoc.z, TheDarkness.lightingBlock);
-					lightingLoc=playerLoc;
+					lightingBlocks.remove(e.player);
+					lightingBlocks.put(e.player, playerLoc);
 				}
+			//if the player isn't holding a light orb but the lighting block is in the world
+			}else if(lightingBlocks.containsKey(e.player)){
+				System.out.println("removing player from lightingBlock set");
+				TDLocation lightingLoc = lightingBlocks.get(e.player);
+				e.player.worldObj.setBlockToAir(lightingLoc.x, lightingLoc.y, lightingLoc.z);
+				lightingBlocks.remove(e.player);
 			}
 		}
+		
 		
 		//send darkness visualization packets to players
 		if(counter%(ConfigValues.darknessWallLocationCheckTime)==0){
 			TDPlayer tdp = TheDarkness.towerManager.getTDPlayer(e.player);
 			
-			if(/**not by dark tower*/inDarkness==false && /**by another tower*/tdp.closeToTower==true && (/**not rendering darkness wall*/tdp.doDarknessWallRender()==false || /**not the same location as before*/ isSameLocation(tdp.darknessWallRenderLocation(), tower.getTDLocation())==false)){
-				System.out.println("Show darkness wall");
+			//light field effects
+			if(tdp.inLightOrbField && !tdp.isHoldingLightOrb && tdp.byDarkTower && !tdp.doLightFieldRender){
+				System.out.println("in light orb field (not personal)");
+				TheDarkness.channel.sendTo(PacketTheDarkness.lightFieldEffectsPacket(), (EntityPlayerMP) e.player);
+				resetRenders(tdp);
+				tdp.doLightFieldRender=true;
+			
+			//personal light field render
+			}else if(tdp.isHoldingLightOrb && tdp.byDarkTower && !tdp.doPersonalLightOrbFieldRender){
+				System.out.println("in personal light orb field and in darkness");
+				TheDarkness.channel.sendTo(PacketTheDarkness.personalLightFieldEffectsPacket(), (EntityPlayerMP)e.player);
+				resetRenders(tdp);
+				tdp.doPersonalLightOrbFieldRender=true;
+
+			//light tower effect
+			//if the player isn't by a dark tower, and he either isn't rendering the wall, or isn't rendering at the same location
+			}else if(tdp.byDarkTower==false && (!tdp.doDarknessWallRender() || !isSameLocation(tdp.darknessWallRenderLocation(), tower.getTDLocation()))){
+				System.out.println("show light tower effects");
 				try {
 					TheDarkness.channel.sendTo(PacketTheDarkness.createWallVisPacket(e.player, tower), (EntityPlayerMP) e.player);
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
+				resetRenders(tdp);
 				tdp.doDarknessWallRenderOnLocation(new TDLocation(tower.xCoord, tower.yCoord, tower.zCoord));
 				
-			}else if(/**by dark tower*/ inDarkness==true && /**rendering darkness wall*/ tdp.doDarknessWallRender()==true ){
-					System.out.println("Stop showing darkness wall");
-					TheDarkness.channel.sendTo(PacketTheDarkness.createWallVisOffPacket(e.player), (EntityPlayerMP) e.player);
-				tdp.stopDarknessWallRender();
-				
+			
+			//darkness effect
+			}else if( tdp.byDarkTower && !tdp.isHoldingLightOrb && tdp.inDarkness && (tdp.doDarknessWallRender() || tdp.doPersonalLightOrbFieldRender || tdp.doLightFieldRender)){
+					System.out.println("Stop showing light tower effects and render darkness");
+					TheDarkness.channel.sendTo(PacketTheDarkness.createRenderInDarknessEffectsPacket(e.player), (EntityPlayerMP) e.player);
+					resetRenders(tdp);
+					tdp.doDarknessSmokeRender=true;
+			
+			//darkness on logon effect
 			}else if(inDarkness==true && tdp.justLoggedIn){
-				TheDarkness.channel.sendTo(PacketTheDarkness.createWallVisOffPacket(e.player), (EntityPlayerMP) e.player);
+				TheDarkness.channel.sendTo(PacketTheDarkness.createRenderInDarknessEffectsPacket(e.player), (EntityPlayerMP) e.player);
 				tdp.justLoggedIn=false;
+				resetRenders(tdp);
+				tdp.doDarknessSmokeRender=true;
 			}
 		}
+		
 		
 		if(counter%ConfigValues.locationTickRate==0){
 			int range = 5;
@@ -126,6 +161,17 @@ public class PlayerTickHandler {
 	private void executeClientPlayerTick(PlayerTickEvent e, TDLocation playerLoc) {
 		//smokey peaceful
 	
+		/**
+		if(counter%ConfigValues.locationTickRate==0){
+			if(e.player.getHeldItem()!=null){
+				if(e.player.getHeldItem().getItem().equals(Item.getItemFromBlock(TheDarkness.lightOrbBlock))){
+					TheDarkness.renderManager.shouldRenderPersonalOrbSphere=true;
+				}else{
+					TheDarkness.renderManager.shouldRenderPersonalOrbSphere=false;
+				}
+			}
+		}
+		*/
 		counter++;
 	}
 	
@@ -147,6 +193,13 @@ public class PlayerTickHandler {
 		}else{
 			return false;
 		}
+	}
+	
+	public void resetRenders(TDPlayer p){
+		p.doDarknessSmokeRender=false;
+		p.doLightFieldRender=false;
+		p.doPersonalLightOrbFieldRender=false;
+		p.stopDarknessWallRender();
 	}
 	
 	

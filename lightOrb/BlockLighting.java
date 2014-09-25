@@ -13,17 +13,17 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 
-public class BlockLightOrb extends BlockContainer {
+public class BlockLighting extends BlockContainer{
 
-	public final String unlocalizedName = "lightOrbBlock";
+	public final String unlocalizedName = "lightingBlock";
 	@SideOnly(Side.CLIENT)
 	IIcon blockIcon;
 	
-	public BlockLightOrb() {
-		super(Material.rock);
+	public BlockLighting() {
+		super(Material.air);
 		
 		this.setBlockName(TheDarkness.MODID+"_"+this.unlocalizedName);
-		this.setBlockBounds(0.3125F, 0.0F, 0.3125F, 0.6875F, 0.375F, 0.6875F);
+		this.setBlockBounds(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F);
 		this.setCreativeTab(CreativeTabs.tabMisc);
 		this.setLightLevel(0.8F);
 	}
@@ -40,10 +40,6 @@ public class BlockLightOrb extends BlockContainer {
 		return false;
 	}
 	
-	@Override
-	public TileEntity createNewTileEntity(World world, int p_149915_2_) {
-		return new TileEntityLightOrb();
-	}
 	
 	@SideOnly(Side.CLIENT)
 	public void registerBlockIcons(IIconRegister iconRegister){
@@ -56,11 +52,8 @@ public class BlockLightOrb extends BlockContainer {
 	}
 
 	@Override
-	public void breakBlock(World world, int x, int y,
-			int z, Block p_149749_5_, int p_149749_6_) {
-		TheDarkness.towerManager.removeOrb((TileEntityLightOrb) world.getTileEntity(x, y, z));
-		world.removeTileEntity(x, y, z);
-		super.breakBlock(world, x, y, z,
-				p_149749_5_, p_149749_6_);
+	public TileEntity createNewTileEntity(World p_149915_1_, int p_149915_2_) {
+		return new TileEntityLighting();
 	}
+
 }

@@ -100,7 +100,7 @@ public class TDWorldGenerator implements IWorldGenerator
 				int newX = i+x;
 				int newZ = k+z;
 				if(newX%(ConfigValues.towerRadius*2)==0 && newZ%(ConfigValues.towerRadius*2)==0){
-					System.out.println("i+x value: "+newX+" z+k value: "+newZ);
+					//System.out.println("i+x value: "+newX+" z+k value: "+newZ);
 					for(int y=256; y>0; y--){
 						if(world.getBlock(newX, y, newZ)==Blocks.air && world.getBlock(newX, y-1, newZ)!=Blocks.air){
 							world.setBlock(newX, y, newZ, TheDarkness.towerBlock);

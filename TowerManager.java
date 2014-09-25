@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Random;
 
+import com.arzeyt.theDarkness.lightOrb.TileEntityLightOrb;
 import com.arzeyt.theDarkness.tower.TileEntityTower;
 import com.ibm.icu.util.BytesTrie.Iterator;
 
@@ -14,6 +15,7 @@ import net.minecraft.block.BlockStone;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.item.Item;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
@@ -23,10 +25,33 @@ public class TowerManager {
 	
 	public HashSet<TileEntityTower> towers = new HashSet<TileEntityTower>();
 	HashSet<TDPlayer> players = new HashSet<TDPlayer>();
+	public HashSet<TileEntityLightOrb> lightOrbs = new HashSet<TileEntityLightOrb>();
 	
 	Random randD = new Random();
 	Random randI = new Random(100);
 	
+	public void addOrb(TileEntityLightOrb orb){
+		HashSet<TileEntityLightOrb> temp = new HashSet<TileEntityLightOrb>();
+		temp=lightOrbs;
+		for(TileEntityLightOrb o : temp){
+			if(o.equals(orb)){
+				return;
+			}
+		}
+		temp.add(orb);
+		lightOrbs=temp;
+		System.out.println("orbs size: "+lightOrbs.size());
+	}
+	
+	public void removeOrb(TileEntityLightOrb orb){
+		HashSet<TileEntityLightOrb> temp = new HashSet<TileEntityLightOrb>();
+		temp=lightOrbs;
+		if(temp.contains(orb)){
+			temp.remove(orb);
+			System.out.println("removed orb");
+		}
+		lightOrbs=temp;
+	}
 	/**
 	 * adds the player to the TDPlayer set, and runs a location check to determine if the player is in the darkness.
 	 * @param player
@@ -42,7 +67,7 @@ public class TowerManager {
 			}
 		}
 		TDPlayer newPlayer = new TDPlayer(player);
-		newPlayer.inDarkness=inDarkness((int)newPlayer.player.posX, (int)newPlayer.player.posZ);
+		newPlayer.inDarkness=inDarkness(player.worldObj, (int)newPlayer.player.posX, (int) newPlayer.player.posY, (int)newPlayer.player.posZ);
 		newPlayer.justLoggedIn=true;
 		temp.add(newPlayer);
 		players=temp;
@@ -61,15 +86,25 @@ public class TowerManager {
 		players=temp;
 	}
 	
-	public void updatePlayerLocation(EntityPlayer player) {
+	public void updatePlayer(EntityPlayer player) {
 		HashSet<TDPlayer> temp = new HashSet<TDPlayer>();
 		temp=players;
 		
 		//check player exists in map and see if he's in darkness
 		for(TDPlayer tdp : temp){
 			if(tdp.player.getDisplayName()==player.getDisplayName()){
-				tdp.inDarkness=inDarkness((int)player.posX, (int)player.posZ);
+				if(player.getHeldItem()!=null && player.getHeldItem().getItem().equals(Item.getItemFromBlock(TheDarkness.lightOrbBlock))){
+					tdp.isHoldingLightOrb=true;
+					tdp.inLightOrbField=true;
+				}else{
+					tdp.isHoldingLightOrb=false;
+					tdp.inLightOrbField=false;
+				}
+				tdp.byDarkTower=byDarkTower(player.worldObj, (int)player.posX, (int)player.posZ);
+				tdp.inLightOrbField=inLightOrbField((int)player.posX, (int)player.posY, (int)player.posZ);
+				tdp.inDarkness=tdp.byDarkTower&&tdp.inLightOrbField==false&&tdp.isHoldingLightOrb==false;
 				tdp.closeToTower=getDistanceToNearestTower((int)player.posX, (int)player.posZ)<=ConfigValues.towerRadius ? true : false;
+				
 			}
 		}
 		
@@ -91,14 +126,48 @@ public class TowerManager {
 		return null;
 	}
 	
-	public boolean inDarkness(int x, int z){
+	public boolean inDarkness(World world, int x, int y, int z){
+		
 		if(towers.size()<1){
+			return false;
+		}else if(byDarkTower(world, x, z) && !inLightOrbField(x, y, z)){
+			return true;
+		}
+		
+			
+		return false;
+	}
+	
+	public boolean byDarkTower(World world, int x, int z){
+		if(towers.size()<1){
+			return false;
+		}else if(world.provider.isSurfaceWorld()==false){
 			return false;
 		}else if(getNearestTower(x, z).towerType.equals(TowerType.DARK)){
 			return true;
-		}else{
-			return false;
 		}
+		return false;
+	}
+	
+	/**
+	 * returns true if player is in a light orb field, either from a light orb placed in the world, or from another player. 
+	 * Does NOT check if player is holding a light orb directly. 
+	 */
+	public boolean inLightOrbField(int x, int y, int z){
+		if(lightOrbs.size()<0)return false;
+		for(TileEntityLightOrb orb : lightOrbs){
+			if(getDistance3D(x, y, z, orb.xCoord, orb.yCoord, orb.zCoord)<=orb.radius){
+				return true;
+			}
+		}
+		for(TDPlayer p : players){
+			if(p.isHoldingLightOrb){
+				if(getDistance3D(x, y, z, p.player.posX, p.player.posY, p.player.posZ)<ConfigValues.lightOrbLightRange){
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	public void addTower(TileEntityTower tower){
@@ -129,6 +198,25 @@ public class TowerManager {
 		
 		return MathHelper.sqrt_double((z2-z1)*(z2-z1)+(x2-x1)*(x2-x1));
 		
+	}
+	
+	public int getDistance3D(int x1, int y1, int z1, int x2, int y2, int z2){
+		int x = x2-x1;
+		int y = y2-y1;
+		int z = z2-z1;
+		
+		double dist = MathHelper.sqrt_double((x*x + y*y + z*z)); 
+		return (int) dist;
+	}
+
+
+	public double getDistance3D(double x1, double y1, double z1, double x2, double y2, double z2){
+		double x = x2-x1;
+		double y = y2-y1;
+		double z = z2-z1;
+		
+		double dist = MathHelper.sqrt_double((x*x + y*y + z*z)); 
+		return dist;
 	}
 	
 	public TileEntityTower getNearestTower(int x, int z){
@@ -301,6 +389,7 @@ public class TowerManager {
 			
 		}
 	}
+	
 	public TDLocation getBorderBlockNearestLocation(TDLocation trackingLoc, TDLocation towerLoc){
 		double distance = 123456789;
 		TDLocation result = null;
@@ -359,10 +448,9 @@ public class TowerManager {
 		for(int i=-spread; i<spread; i++){
 			for(int j=-spread; j<spread; j++){
 				for(int k=-spread; k<spread; k++){
-					Random randDouble = new Random();
-					Random randInt = new Random(100);
-					if(randInt.nextInt()<density){
-						world.spawnParticle("cloud", loc.x+i+randDouble.nextDouble(), loc.y+j+randDouble.nextDouble(), loc.z+k+randDouble.nextDouble(), 0.0, 0.0, 0.0);
+					if(randI.nextInt(100)<density){
+						
+						world.spawnParticle("depthsuspend", loc.x+i+randD.nextDouble(), loc.y+j+randD.nextDouble(), loc.z+k+randD.nextDouble(), 0.0, 0.0, 0.0);
 					}
 				}
 			}
@@ -411,7 +499,7 @@ public class TowerManager {
 		}
 	}
 	
-	public void createParticleSphere(World world, double posX, double posY, double posZ, int radius, String particleName){
+	public void createParticleSphere(World world, double posX, double posY, double posZ, int radius, int density, String particleName){
 		/**
 		int i = MathHelper.floor_double(posX);
 		int j = MathHelper.floor_double(posY); 
@@ -420,15 +508,14 @@ public class TowerManager {
 		double i = posX;
 		double j = posY;
 		double k = posZ;
-		Random rand = new Random();
 		
 		int r = radius;
 		for(double x = -r; x < r; x++){
 			for(double y = -r; y < r; y++){ 
 				for(double z = -r; z < r; z++){					
 					double dist = MathHelper.sqrt_double((x*x + y*y + z*z)); //Calculates the distance
-					if(dist == r || dist == r+1 || dist == r-1){
-						world.spawnParticle(particleName, i+x+rand.nextDouble(), j+y+rand.nextDouble(), k+z+rand.nextDouble(), 0.0, 0.0, 0.0);
+					if((dist >= r-1 && dist <= r+1) && randI.nextInt(100)<density){
+						world.spawnParticle(particleName, i+x+randD.nextDouble(), j+y+randD.nextDouble(), k+z+randD.nextDouble(), 0.0, 0.0, 0.0);
 					}
 				}
 			}

@@ -11,6 +11,7 @@ public class TDPlayer {
 	EntityPlayer player;
 	
 	boolean inDarkness=false;
+	int counter=0;
 	/**
 	 * includes empty towers
 	 */
@@ -18,10 +19,16 @@ public class TDPlayer {
 	private boolean doDarknessWallRender=false;
 	private TDLocation darknessWallRenderLoc=null;
 	public boolean justLoggedIn=false;
-	
-	private boolean doDarknessSmokeRender=false;
+	public boolean doDarknessSmokeRender=false;
+	public boolean isHoldingLightOrb = false;
+	public boolean inLightOrbField=false;
+	public boolean doPersonalLightOrbFieldRender=false;
+	public boolean byDarkTower=false;
+	public boolean doLightFieldRender=false;
 	
 	HashMap<Boolean, TDLocation> darknessWallRenderOnLocation = new HashMap<Boolean, TDLocation>();
+	
+	
 
 	public TDPlayer(EntityPlayer player){
 		this.player=player;
@@ -70,6 +77,12 @@ public class TDPlayer {
 	public TDLocation darknessWallRenderLocation(){
 		return darknessWallRenderLoc;
 		
+	}
+	
+	public void setPlayerHoldingLightOrb(){
+		inDarkness=false;
+		isHoldingLightOrb=true;
+		inLightOrbField=true;
 	}
 
 }

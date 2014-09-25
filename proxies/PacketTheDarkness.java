@@ -37,8 +37,39 @@ public class PacketTheDarkness {
 	public final static int packetTypeTowerSync = 5;
 	public final static int packetTypeClientTowerSync = 6;
 	public final static int packetTypeExtendedPeacefulSync = 7;
+	public final static int packetTypeRenderLightFieldEffects = 8;
+	public final static int packetTypePersonalLightFieldEffects = 9;
 	
 
+
+	public static FMLProxyPacket personalLightFieldEffectsPacket() throws IOException {
+		System.out.println("Sending PacketTheDarkness personal light field effects server side");
+
+		ByteBufOutputStream bbos = new ByteBufOutputStream(Unpooled.buffer());
+
+		bbos.writeInt(packetTypePersonalLightFieldEffects);
+		
+		
+		// put payload into a packet		
+		FMLProxyPacket thePacket = new FMLProxyPacket(bbos.buffer(), TheDarkness.networkChannelName);
+
+		bbos.close();
+		return thePacket;
+	}
+	public static FMLProxyPacket lightFieldEffectsPacket() throws IOException {
+		System.out.println("Sending PacketTheDarkness light field effects server side");
+
+		ByteBufOutputStream bbos = new ByteBufOutputStream(Unpooled.buffer());
+
+		bbos.writeInt(packetTypeRenderLightFieldEffects);
+		
+		
+		// put payload into a packet		
+		FMLProxyPacket thePacket = new FMLProxyPacket(bbos.buffer(), TheDarkness.networkChannelName);
+
+		bbos.close();
+		return thePacket;
+	}
 	/**
 	 * does nothing right now
 	 */
@@ -124,7 +155,7 @@ public class PacketTheDarkness {
 		return thePacket;
 	}
 	
-	public static FMLProxyPacket createWallVisOffPacket(EntityPlayer player) throws IOException
+	public static FMLProxyPacket createRenderInDarknessEffectsPacket(EntityPlayer player) throws IOException
 	{
 		// DEBUG
 		System.out.println("Sending PacketTheDarkness wallVisOff on Server Side");
@@ -231,35 +262,35 @@ public class PacketTheDarkness {
 					theWorld.setTileEntity(x, y, z, tower);
 				
 			}else if(packetTypeID==packetTypeRenderInLightEffects){
-					System.out.println("PacketTypeWallVisOn");
+					System.out.println("packet type in light effects");
 					int xCoord = bbis.readInt();
 					int yCoord = bbis.readInt();
 					int zCoord = bbis.readInt();
 					
 					TheDarkness.renderManager.activateTowerRadiusBorderRender(new TDLocation(xCoord, yCoord, zCoord));
 					TheDarkness.renderManager.shouldRenderDarknessSmoke=false;
-					TheDarkness.renderManager.shouldRenderOrbSphere=false;
+					TheDarkness.renderManager.shouldRenderPersonalOrbSphere=false;
 					
 			}else if(packetTypeID==packetTypeRenderInDarknessEffects){
-				System.out.println("PacketTypeWallVisOff");
+				System.out.println("Packet Type In darkness effects");
 				
 				TheDarkness.renderManager.deactivateTowerRadiusBorderRender();
 				TheDarkness.renderManager.shouldRenderDarknessSmoke=true;
-				TheDarkness.renderManager.shouldRenderOrbSphere=true;
+				TheDarkness.renderManager.shouldRenderPersonalOrbSphere=false;
 			
 			
 			}else if(packetTypeID==packetTypeTowerSync){
-				System.out.println("packetTypeRenderTowerTransition");
+				System.out.println("packetTypeTowerSynce");
 				
 				//read
 				int x = bbis.readInt();
 				int y = bbis.readInt();
 				int z = bbis.readInt();
 				
-				boolean one = bbis.readBoolean();
-				boolean two = bbis.readBoolean();
-				boolean three = bbis.readBoolean();
-				boolean four = bbis.readBoolean();
+				boolean empty = bbis.readBoolean();
+				boolean emptyHandled = bbis.readBoolean();
+				boolean full = bbis.readBoolean();
+				boolean fullHandled = bbis.readBoolean();
 				
 				int towerType = bbis.readInt();
 				
@@ -267,10 +298,10 @@ public class PacketTheDarkness {
 				try{
 					TileEntityTower te = (TileEntityTower) Minecraft.getMinecraft().theWorld.getTileEntity(x, y, z);
 					
-					te.renderTransitionToEmpty=one;
-					te.renderTransitionToEmptyHandled=two;
-					te.renderTransitionToFull=three;
-					te.renderTransitionToFullHandled=four;
+					te.renderTransitionToEmpty=empty;
+					te.renderTransitionToEmptyHandled=emptyHandled;
+					te.renderTransitionToFull=full;
+					te.renderTransitionToFullHandled=fullHandled;
 					
 					te.animationOffset=System.currentTimeMillis();
 					
@@ -278,8 +309,18 @@ public class PacketTheDarkness {
 					
 					
 				}catch(Exception e){
-					System.out.println("problem handling render to light tower packet");
+					System.out.println("problem handling tower sync packet");
 				}
+			}else if(packetTypeID==packetTypeRenderLightFieldEffects){
+				System.out.println("packet type render in light field effects");
+				
+				TheDarkness.renderManager.shouldRenderDarknessSmoke=false;
+				
+			}else if(packetTypeID==packetTypePersonalLightFieldEffects){
+				System.out.println("packet type personal light field effects");
+				
+				TheDarkness.renderManager.shouldRenderPersonalOrbSphere=true;
+				TheDarkness.renderManager.shouldRenderDarknessSmoke=false;
 			}
 			
 			
